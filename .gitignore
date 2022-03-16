@@ -1,3 +1,8 @@
+# costom
+data/user_data/*
+model/*
+get_text_from_slack_token.py
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
