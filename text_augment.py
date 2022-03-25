@@ -34,7 +34,12 @@ class TextAugment():
         return list(synset_words)
     
     def wakati_text(self, text, hinshi=['名詞', '形容詞']):
-        m = MeCab.Tagger(ipadic.MECAB_ARGS)
+        # Windowsの場合
+        # m = MeCab.Tagger(ipadic.MECAB_ARGS)
+
+        # Mac or Linuxの場合 -> Neologd
+        m = MeCab.Tagger('-d /usr/local/lib/mecab/dic/mecab-ipadic-neologd')
+        
         p = m.parse(text)
         p_split = [i.split("\t") for i in p.split("\n")][:-2]
 
@@ -210,8 +215,10 @@ class TextAugment():
     def regular_text(self):
         doc_list = pd.read_csv(self.text_file_path)["text"].values.tolist()
         regular_document = []
-        for doc in doc_list:
-            if "④その他" not in doc:
+
+        print("start regular")
+        for doc in tqdm(doc_list):
+            if "その他" not in doc and re.search(r'(<@U.*>)', doc):
                 texts = doc.split("\n")
                 for text in texts:
                     text = re.sub(r'(<@U.*>)', '', text)
@@ -219,15 +226,18 @@ class TextAugment():
                     text = re.sub(r'(<https:.*>)', '', text)
                     text = re.sub(r'(<http:.*>)', '', text)
                     text = re.sub(r'(\n|\s)', '', text)
-                    regular_document += [text]
+                    if len(text) > 15:
+                        regular_document += [text]
 
             else:
-                text = doc.split("④その他")[1]
+                doc = re.sub(r'(\n|\s)', '', doc)
+                text = doc.split("その他")[-1]
                 text = re.sub(r'(:[a-zA-Z0-9_-]+:)', '', text)
                 text = re.sub(r'(<https:.*>)', '', text)
                 text = re.sub(r'(<http:.*>)', '', text)
-                text = re.sub(r'(\n|\s)', '', text)
-                regular_document += [text]
+                text = re.sub(r'(<@U.*>)', '', text)
+                if len(text) > 15:
+                        regular_document += [text]
         
         return regular_document
 
@@ -239,10 +249,13 @@ if __name__ == "__main__":
     #text =  "類似するデータを生成する記事を書いてます。"
     
     regular_document = text_augment.regular_text()
+    with open(folder_path+'visual_text.txt', 'w', encoding='utf-8') as f:
+        for d in regular_document:
+            f.write(f"{d}\n")
+    '''
     document_train, document_test = train_test_split(regular_document, test_size=0.2)
     document_dev = document_test[:len(document_test)]
     document_test = document_test[len(document_test):]
-
     with open(folder_path+'dev_set.txt', 'w', encoding='utf-8') as f:
         for d in document_dev:
             f.write(f"{d}\n")
@@ -255,20 +268,21 @@ if __name__ == "__main__":
         for text in tqdm(document_train):
             if text == "":
                 continue
-            augmented_sentences = text_augment.eda(text, alpha_sr=0.2, alpha_ri=0.1, alpha_rs=0.05, p_rd=0.05, num_aug=100)
+            augmented_sentences = text_augment.eda(text, alpha_sr=0.2, alpha_ri=0.1, alpha_rs=0.05, p_rd=0.05, num_aug=5)
             for d in augmented_sentences:
                 f.write(f"{d}\n")
 
-            augmented_sentences = text_augment.eda(text, alpha_sr=0.15, alpha_ri=0.15, alpha_rs=0.05, p_rd=0.05, num_aug=50)
+            augmented_sentences = text_augment.eda(text, alpha_sr=0.15, alpha_ri=0.15, alpha_rs=0.05, p_rd=0.05, num_aug=5)
             for d in augmented_sentences:
                 f.write(f"{d}\n")
             
-            augmented_sentences = text_augment.eda(text, alpha_sr=0.1, alpha_ri=0.15, alpha_rs=0.05, p_rd=0.05, num_aug=25)
+            augmented_sentences = text_augment.eda(text, alpha_sr=0.1, alpha_ri=0.15, alpha_rs=0.05, p_rd=0.05, num_aug=2)
             for d in augmented_sentences:
                 f.write(f"{d}\n")
             
-            augmented_sentences = text_augment.eda(text, alpha_sr=0.1, alpha_ri=0.1, alpha_rs=0.1, p_rd=0.05, num_aug=25)
+            augmented_sentences = text_augment.eda(text, alpha_sr=0.1, alpha_ri=0.1, alpha_rs=0.1, p_rd=0.05, num_aug=2)
             for d in augmented_sentences:
                 f.write(f"{d}\n")
+    '''
     
     print("完了")
